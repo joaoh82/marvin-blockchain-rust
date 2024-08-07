@@ -103,7 +103,7 @@ If you feel like you need it go check the GitHub documentation on [creating a pu
 ### Code of Conduct
 
 Contribution to the project is organized under the terms of the
-Contributor Covenant, the maintainer of SQLRite, [@joaoh82](https://github.com/joaoh82), promises to
+Contributor Covenant, the maintainer of Marvin Blockchain, [@joaoh82](https://github.com/joaoh82), promises to
 intervene to uphold that code of conduct.
 
 ### License
