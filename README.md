@@ -1,5 +1,5 @@
 # Marvin Blockchain - Rust Implementation
-===
+
 [![Build Status](https://github.com/joaoh82/marvin-blockchain-rust/workflows/Rust/badge.svg)](https://github.com/joaoh82/marvin-blockchain-rust/actions)
 [![dependency status](https://deps.rs/repo/github/joaoh82/marvin-blockchain-rust/status.svg)](https://deps.rs/repo/github/joaoh82/marvin-blockchain-rust)
 [![Coverage Status](https://coveralls.io/repos/github/joaoh82/marvin-blockchain-rust/badge.svg?branch=main)](https://coveralls.io/github/joaoh82/marvin-blockchain-rust?branch=main)
