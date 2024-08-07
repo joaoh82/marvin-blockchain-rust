@@ -1,4 +1,11 @@
 # Marvin Blockchain - Rust Implementation
+===
+[![Build Status](https://github.com/joaoh82/marvin-blockchain-rust/workflows/Rust/badge.svg)](https://github.com/joaoh82/marvin-blockchain-rust/actions)
+[![dependency status](https://deps.rs/repo/github/joaoh82/marvin-blockchain-rust/status.svg)](https://deps.rs/repo/github/joaoh82/marvin-blockchain-rust)
+[![Coverage Status](https://coveralls.io/repos/github/joaoh82/marvin-blockchain-rust/badge.svg?branch=main)](https://coveralls.io/github/joaoh82/marvin-blockchain-rust?branch=main)
+[![Maintenance](https://img.shields.io/badge/maintenance-actively%20maintained-brightgreen.svg)](https://deps.rs/repo/github/joaoh82/marvin-blockchain-rust)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 Welcome to the Rust implementation of the Marvin Blockchain. This project is part of a comparative study on building the same blockchain in both Go and Rust. Follow along as we explore the development process, performance, and features of a blockchain built in Rust.
 
 ## Project Overview
@@ -45,7 +52,7 @@ To run the unit tests:
 cargo test
 ```
 
-### Project Progress
+### Project Progress (WIP)
 - [ ] Add CLI support for ease of interaction
 - [ ] Implement the basic blockchain data structure
 - [ ] Proof of Work (PoW) consensus mechanism
@@ -58,7 +65,7 @@ cargo test
 - [ ] Performance benchmarking and optimization
 - [ ] Comprehensive documentation and examples
 
-## Roadmap
+## Roadmap (Subject to Change)
 - [ ] Features and improvements planned for the project:
 - [ ] Implement wallet functionalities
 - [ ] Improve EVM compatibility and support
@@ -72,7 +79,7 @@ cargo test
 - [ ] Cross-chain interoperability solutions
 - [ ] Improve documentation and developer guides
 
-### Project Structure
+### Project Structure (WIP)
 The project is structured as follows:
 - `src/`: Contains the source code for the blockchain implementation.
 - `src/blockchain/`: Contains the blockchain and block implementation.
