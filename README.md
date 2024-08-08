@@ -20,8 +20,10 @@ Marvin Blockchain is a distributed ledger and EVM Compatible inspired by Bitcoin
 
 - **Proof of Work (PoW) Consensus Mechanism**
 - **Peer-to-Peer (P2P) Networking**
+- **Storage and Persistence**
 - **Transaction and Block Validation**
 - **Smart Contract Support via EVM Compatibility**
+- **JSON-RPC API**
 - **Comprehensive Unit Tests and Benchmarks**
 
 ## Getting Started
