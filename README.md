@@ -14,7 +14,7 @@ Marvin Blockchain is a distributed ledger and EVM Compatible inspired by Bitcoin
 
 ### Read the series of posts about it:
 ##### Crafting a Blockchain in Go and Rust: A Comparative Journey
-* [Part 0 - Introduction and Overview](https://blog.thepolyglotprogrammer.com/)
+* [Part 0 - Introduction and Overview](https://medium.com/the-polyglot-programmer/crafting-a-blockchain-in-go-and-rust-a-comparative-journey-introduction-and-overview-part-0-e63dedee6b06)
 
 ## Features (WIP)
 
