@@ -16,7 +16,7 @@ Marvin Blockchain is a distributed ledger and EVM Compatible inspired by Bitcoin
 ##### Crafting a Blockchain in Go and Rust: A Comparative Journey
 * [Part 0 - Introduction and Overview](https://blog.thepolyglotprogrammer.com/)
 
-## Features
+## Features (WIP)
 
 - **Proof of Work (PoW) Consensus Mechanism**
 - **Peer-to-Peer (P2P) Networking**
@@ -69,7 +69,7 @@ cargo test
 - [ ] Performance benchmarking and optimization
 - [ ] Comprehensive documentation and examples
 
-## Roadmap (Subject to Change)
+### Roadmap (Subject to Change)
 - [ ] Features and improvements planned for the project:
 - [ ] Implement wallet functionalities
 - [ ] Improve EVM compatibility and support
@@ -86,10 +86,12 @@ cargo test
 ### Project Structure (WIP)
 The project is structured as follows:
 - `src/`: Contains the source code for the blockchain implementation.
-- `src/blockchain/`: Contains the blockchain and block implementation.
+- `src/docs/`: Contains the documentation and guides for the project.
+- `src/core/`: Contains the core blockchain data structures and logic.
 - `src/network/`: Contains the networking implementation.
-- `src/transaction/`: Contains the transaction implementation.
+- `src/transactions/`: Contains transaction handling and validation.
 - `src/wallet/`: Contains the wallet implementation.
+- `src/utils/`: Contains the utility functions and helpers.
 - `src/main.rs`: Contains the entry point for the blockchain application.
 - `tests/`: Contains the unit tests for the blockchain implementation.
 
