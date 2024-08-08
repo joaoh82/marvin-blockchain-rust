@@ -12,6 +12,10 @@ Welcome to the Rust implementation of the Marvin Blockchain. This project is par
 
 Marvin Blockchain is a distributed ledger and EVM Compatible inspired by Bitcoin and Ethereum, implemented in Rust. This project aims to provide a robust and scalable blockchain solution while comparing the nuances of building the same system in Go.
 
+### Read the series of posts about it:
+##### Crafting a Blockchain in Go and Rust: A Comparative Journey
+* [Part 0 - Introduction and Overview](https://blog.thepolyglotprogrammer.com/)
+
 ## Features
 
 - **Proof of Work (PoW) Consensus Mechanism**
