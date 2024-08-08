@@ -88,7 +88,7 @@ cargo test
 ### Project Structure (WIP)
 The project is structured as follows:
 - `src/`: Contains the source code for the blockchain implementation.
-- `src/docs/`: Contains the documentation and guides for the project.
+- `docs/`: Contains the documentation and guides for the project.
 - `src/core/`: Contains the core blockchain data structures and logic.
 - `src/network/`: Contains the networking implementation.
 - `src/transactions/`: Contains transaction handling and validation.
