@@ -59,11 +59,13 @@ cargo test
 ```
 
 ### Project Progress (WIP)
-- [ ] Add CLI support for ease of interaction
+- [x] Add CLI support for ease of interaction
+- [ ] Basic transaction and block validation
 - [ ] Implement the basic blockchain data structure
+
+### Roadmap (Subject to Change)
 - [ ] Proof of Work (PoW) consensus mechanism
 - [ ] Peer-to-Peer (P2P) networking implementation (transport layer)
-- [ ] Basic transaction and block validation
 - [ ] Storage and persistence for blockchain data
 - [ ] EVM integration for smart contract support
 - [ ] JSON-RPC API implementation
@@ -71,8 +73,6 @@ cargo test
 - [ ] Enhanced security measures and best practices
 - [ ] Performance benchmarking and optimization
 - [ ] Comprehensive documentation and examples
-
-### Roadmap (Subject to Change)
 - [ ] Implement wallet functionalities
 - [ ] Improve EVM compatibility and support
 - [ ] Add more consensus mechanisms (e.g., PoS)
