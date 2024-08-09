@@ -89,6 +89,7 @@ cargo test
 The project is structured as follows:
 - `src/`: Contains the source code for the blockchain implementation.
 - `docs/`: Contains the documentation and guides for the project.
+- `src/cli/`: Contains the CLI implementation for the blockchain.
 - `src/core/`: Contains the core blockchain data structures and logic.
 - `src/network/`: Contains the networking implementation.
 - `src/transactions/`: Contains transaction handling and validation.
