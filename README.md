@@ -60,6 +60,7 @@ cargo test
 
 ### Project Progress (WIP)
 - [x] Add CLI support for ease of interaction
+- [x] Implemented key pair creation, sign and verify
 - [ ] Basic transaction and block validation
 - [ ] Implement the basic blockchain data structure
 

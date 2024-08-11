@@ -1,4 +1,5 @@
 mod cli;
+mod crypto;
 
 use cli::start_cli;
 
