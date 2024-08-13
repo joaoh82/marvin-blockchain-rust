@@ -1,5 +1,8 @@
+use bip39::Mnemonic;
 use ed25519_dalek::{ed25519::signature::SignerMut, Signature, SigningKey, Verifier, VerifyingKey};
-use rand::rngs::OsRng;
+use pbkdf2::{pbkdf2_hmac, pbkdf2_hmac_array};
+use rand::{rngs::OsRng, RngCore};
+use sha2::Sha256;
 
 const PRIVATE_KEY_SIZE: usize = ed25519_dalek::SECRET_KEY_LENGTH;
 const PUBLIC_KEY_SIZE: usize = ed25519_dalek::PUBLIC_KEY_LENGTH;
@@ -9,6 +12,38 @@ const SEED_SIZE: usize = 32;
 
 pub struct PrivateKey {
     pub key: SigningKey,
+}
+
+/// new_entropy generates a new 16 byte entropy
+pub fn new_entropy() -> [u8; 16] {
+    let mut csprng = OsRng;
+    let mut entropy = [0u8; 16];
+    csprng.fill_bytes(&mut entropy);
+    entropy
+}
+
+/// get_mnemonic_from_entropy generates a new mnemonic from the given entropy
+pub fn get_mnemonic_from_entropy(entropy: &[u8; 16]) -> String {
+    let mnemonic = Mnemonic::from_entropy(entropy).unwrap();
+    mnemonic.to_string()
+}
+
+/// get_seed_from_mnemonic generates a new seed from the given mnemonic
+pub fn get_seed_from_mnemonic(mnemonic: &str) -> [u8; SEED_SIZE] {
+    let mut seed = [0u8; SEED_SIZE];
+    let salt = b"mnemonic+some password";
+    // number of iterations
+    let n = 1024_000;
+
+    pbkdf2_hmac::<Sha256>(mnemonic.as_bytes(), salt, n, &mut seed);
+
+    seed
+}
+
+/// get_private_key_from_mnemonic generates a new private key from the given mnemonic
+pub fn get_private_key_from_mnemonic(mnemonic: &str) -> PrivateKey {
+    let seed = get_seed_from_mnemonic(mnemonic);
+    new_private_key_from_seed(&seed)
 }
 
 pub fn new_private_key_from_string(private_key: &str) -> PrivateKey {
@@ -101,6 +136,91 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_new_private_key_from_mnemonic_deterministic() {
+        let entropy = new_entropy();
+        let mnemonic = get_mnemonic_from_entropy(&entropy);
+        let private_key = get_private_key_from_mnemonic(&mnemonic);
+
+        assert_eq!(
+            private_key.to_bytes().len(),
+            PRIVATE_KEY_SIZE,
+            "Private key should be 64 bytes long"
+        );
+    }
+
+    #[test]
+    fn test_new_private_key_from_mnemonic() {
+        let mnemonic = "reason oil range swear outdoor letter pair city axis expire tower dumb";
+        let address_string = "fddf13d119646c53622a70adba80081a3ef13522";
+        let private_key = get_private_key_from_mnemonic(&mnemonic);
+
+        assert_eq!(
+            private_key.to_bytes().len(),
+            PRIVATE_KEY_SIZE,
+            "Private key should be 64 bytes long"
+        );
+
+        assert_eq!(
+            private_key.public_key().address().string(),
+            address_string,
+            "Address should be equal to the expected value"
+        );
+    }
+
+    #[test]
+    fn test_get_seed_from_mnemonic_length() {
+        let mnemonic = "test mnemonic";
+        let seed = get_seed_from_mnemonic(mnemonic);
+        assert_eq!(seed.len(), SEED_SIZE, "Seed should be 32 bytes long");
+    }
+
+    #[test]
+    fn test_get_seed_from_mnemonic_deterministic() {
+        let mnemonic = "test mnemonic";
+        let seed1 = get_seed_from_mnemonic(mnemonic);
+        let seed2 = get_seed_from_mnemonic(mnemonic);
+        assert_eq!(
+            seed1, seed2,
+            "Seed should be the same for the same mnemonic"
+        );
+    }
+
+    #[test]
+    fn test_get_seed_from_mnemonic_different_mnemonics() {
+        let mnemonic1 = "test mnemonic one";
+        let mnemonic2 = "test mnemonic two";
+        let seed1 = get_seed_from_mnemonic(mnemonic1);
+        let seed2 = get_seed_from_mnemonic(mnemonic2);
+        assert_ne!(
+            seed1, seed2,
+            "Seed should be different for different mnemonics"
+        );
+    }
+
+    #[test]
+    fn test_new_entropy_length() {
+        let entropy = new_entropy();
+        assert_eq!(entropy.len(), 16, "Entropy should be 16 bytes long");
+    }
+
+    #[test]
+    fn test_new_entropy_randomness() {
+        let entropy1 = new_entropy();
+        let entropy2 = new_entropy();
+
+        // It's extremely unlikely that two random 128-bit values will be the same
+        assert_ne!(entropy1, entropy2, "Entropy values should be different");
+    }
+
+    #[test]
+    fn test_get_mnemonic_from_entropy() {
+        let entropy = new_entropy();
+        let mnemonic = get_mnemonic_from_entropy(&entropy);
+        println!("Mnemonic: {}", mnemonic);
+        assert_eq!(12, mnemonic.split_whitespace().count());
+    }
+
+    #[test]
     fn test_new_private_key_from_seed() {
         let seed = [0u8; 32];
         let private_key = new_private_key_from_seed(&seed);
@@ -132,7 +252,7 @@ mod tests {
     fn test_private_key_sign() {
         let mut private_key = generate_private_key();
         let public_key: PublicKey = private_key.public_key();
-        let mut invalid_private_key = generate_private_key();
+        let invalid_private_key = generate_private_key();
         let invalid_public_key: PublicKey = invalid_private_key.public_key();
 
         let data = b"hello world";
@@ -156,7 +276,7 @@ mod tests {
         let private_key = generate_private_key();
         let public_key = private_key.public_key();
         let address = public_key.address();
-        println!("{}", address.string());
+        // println!("{}", address.string());
         assert_eq!(ADDRESS_SIZE, address.value.len());
     }
 }
