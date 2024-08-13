@@ -5,3 +5,4 @@
 2. [ed25519-dalek](https://crates.io/crates/ed25519-dalek)
   - https://docs.rs/ed25519-dalek/2.1.1/ed25519_dalek/
 3. [Library for BIP-39 Bitcoin mnemonic codes](https://crates.io/crates/bip39)
+4. [Generic implementation of PBKDF2](https://crates.io/crates/pbkdf2)
