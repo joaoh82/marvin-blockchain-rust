@@ -61,7 +61,7 @@ cargo test
 ### Project Progress (WIP)
 - [x] Add CLI support for ease of interaction
 - [x] Implemented key pair creation, sign and verify
-- [ ] Create key pair with mnemonic seed
+- [x] Create key pair with mnemonic seed
 - [ ] Add address command to CLI
 - [ ] Basic transaction and block validation
 - [ ] Implement the basic blockchain data structure
