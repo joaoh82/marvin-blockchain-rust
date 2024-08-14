@@ -8,22 +8,21 @@ pub fn start_cli() -> Command {
         .allow_external_subcommands(true)
         .version("0.1.0")
         .subcommand(
-            Command::new("test")
-                .about("Test the CLI")
-                .arg(arg!(-t --test ... "Test mode")),
-        )
-        .subcommand(
             Command::new("address")
                 .about("Manage addresses")
                 .arg_required_else_help(true)
                 .subcommand_required(true)
+                .subcommand(Command::new("create").about("Create a new address"))
                 .subcommand(
-                    Command::new("create").about("Create a new address").arg(
-                        Arg::new("mnemonic")
-                            .short('m')
-                            .long("mnemonic")
-                            .required(true),
-                    ),
+                    Command::new("restore")
+                        .about("Restore an address from a mnemonic")
+                        .arg(
+                            Arg::new("mnemonic")
+                                .short('m')
+                                .long("mnemonic")
+                                .required(true),
+                        )
+                        .arg_required_else_help(true),
                 ),
         )
 }

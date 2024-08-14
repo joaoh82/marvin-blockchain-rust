@@ -1,6 +1,6 @@
 use bip39::Mnemonic;
 use ed25519_dalek::{ed25519::signature::SignerMut, Signature, SigningKey, Verifier, VerifyingKey};
-use pbkdf2::{pbkdf2_hmac, pbkdf2_hmac_array};
+use pbkdf2::pbkdf2_hmac;
 use rand::{rngs::OsRng, RngCore};
 use sha2::Sha256;
 
