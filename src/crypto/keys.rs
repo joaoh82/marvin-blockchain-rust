@@ -71,6 +71,7 @@ pub fn generate_private_key() -> PrivateKey {
 }
 
 impl PrivateKey {
+    /// Sign a message with the private key
     pub fn sign(&mut self, data: &[u8]) -> SignatureWrapper {
         SignatureWrapper {
             signature: self.key.sign(data),
