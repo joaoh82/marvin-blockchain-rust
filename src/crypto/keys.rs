@@ -46,12 +46,14 @@ pub fn get_private_key_from_mnemonic(mnemonic: &str) -> PrivateKey {
     new_private_key_from_seed(&seed)
 }
 
+/// new_private_key_from_string generates a new private key from the given private key string
 pub fn new_private_key_from_string(private_key: &str) -> PrivateKey {
     let decoded_private_key = hex::decode(private_key).unwrap();
 
     new_private_key_from_seed(&decoded_private_key[..SEED_SIZE].try_into().unwrap())
 }
 
+/// new_private_key_from_seed generates a new private key from the given seed
 pub fn new_private_key_from_seed(seed: &[u8; 32]) -> PrivateKey {
     if seed.len() != SEED_SIZE {
         panic!("Invalid seed size, expected 32 bytes.");
@@ -61,6 +63,7 @@ pub fn new_private_key_from_seed(seed: &[u8; 32]) -> PrivateKey {
     PrivateKey { key }
 }
 
+/// generate_private_key generates a new private key with a random seed (Good for testing purposes)
 pub fn generate_private_key() -> PrivateKey {
     let mut csprng = OsRng;
     let key: SigningKey = SigningKey::generate(&mut csprng);
@@ -108,10 +111,12 @@ pub struct SignatureWrapper {
 }
 
 impl SignatureWrapper {
+    /// Convert the signature to bytes
     pub fn to_bytes(&self) -> [u8; SIGNATURE_SIZE] {
         self.signature.to_bytes()
     }
 
+    /// Verify a message with the public key
     pub fn verify(&self, data: &[u8], public_key: &PublicKey) -> bool {
         public_key.key.verify(data, &self.signature).is_ok()
     }
@@ -122,10 +127,12 @@ pub struct Address {
 }
 
 impl Address {
-    pub fn string(&self) -> String {
+    /// Convert the address to a string in hex format
+    pub fn to_string(&self) -> String {
         hex::encode(self.value)
     }
 
+    /// Convert the address to bytes
     pub fn to_bytes(&self) -> [u8; ADDRESS_SIZE] {
         self.value
     }
@@ -161,7 +168,7 @@ mod tests {
         );
 
         assert_eq!(
-            private_key.public_key().address().string(),
+            private_key.public_key().address().to_string(),
             address_string,
             "Address should be equal to the expected value"
         );
@@ -236,7 +243,7 @@ mod tests {
         assert_eq!(PRIVATE_KEY_SIZE, private_key.to_bytes().len());
 
         let address = private_key.public_key().address();
-        assert_eq!(address_string, address.string());
+        assert_eq!(address_string, address.to_string());
     }
 
     #[test]
