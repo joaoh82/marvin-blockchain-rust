@@ -1,5 +1,7 @@
 mod cli;
+mod core;
 mod crypto;
+mod types;
 
 use cli::start_cli;
 use crypto::keys::get_private_key_from_mnemonic;

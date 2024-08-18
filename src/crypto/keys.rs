@@ -2,6 +2,7 @@ use bip39::Mnemonic;
 use ed25519_dalek::{ed25519::signature::SignerMut, Signature, SigningKey, Verifier, VerifyingKey};
 use pbkdf2::pbkdf2_hmac;
 use rand::{rngs::OsRng, RngCore};
+use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
 const PRIVATE_KEY_SIZE: usize = ed25519_dalek::SECRET_KEY_LENGTH;
@@ -10,6 +11,7 @@ const SIGNATURE_SIZE: usize = ed25519_dalek::SIGNATURE_LENGTH;
 const ADDRESS_SIZE: usize = 20;
 const SEED_SIZE: usize = 32;
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct PrivateKey {
     pub key: SigningKey,
 }
@@ -90,7 +92,7 @@ impl PrivateKey {
         }
     }
 }
-
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub struct PublicKey {
     pub key: VerifyingKey,
 }
@@ -107,6 +109,7 @@ impl PublicKey {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub struct SignatureWrapper {
     pub signature: Signature,
 }
@@ -123,6 +126,7 @@ impl SignatureWrapper {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Address {
     pub value: [u8; ADDRESS_SIZE],
 }
