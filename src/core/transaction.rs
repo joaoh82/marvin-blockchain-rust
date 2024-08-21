@@ -1,4 +1,4 @@
-use crate::crypto::keys::{PublicKey, SignatureWrapper};
+use crate::crypto::keys::{PrivateKey, PublicKey, SignatureWrapper};
 use crate::types::hash;
 
 use crypto::digest::Digest;
@@ -37,7 +37,7 @@ impl Transaction {
     }
 
     /// Calculate the hash of the transaction
-    pub fn hash(&self) -> Option<hash::Hash> {
+    pub fn hash(&mut self) -> Option<hash::Hash> {
         if let Some(hash) = &self.hash {
             return Some(hash.clone());
         }
@@ -48,7 +48,32 @@ impl Transaction {
         let mut hash = [0; 32];
         hasher.result(&mut hash);
 
+        self.hash = Some(hash::Hash { hash });
+
         Some(hash::Hash { hash })
+    }
+
+    fn sign(&mut self, private_key: &mut PrivateKey) -> Result<(), String> {
+        let hash = self.hash().unwrap();
+        let signature = private_key.sign(&hash.hash);
+        self.signature = Some(signature.unwrap());
+        self.from = Some(private_key.public_key());
+
+        Ok(())
+    }
+
+    fn verify(&mut self) -> bool {
+        if self.from.is_none() || self.signature.is_none() {
+            return false;
+        }
+
+        let public_key = self.from.unwrap();
+        let signature = self.signature.unwrap();
+        let hash = self.hash().unwrap();
+
+        let is_verified = signature.verify(&hash.hash, &public_key);
+
+        is_verified
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -57,5 +82,55 @@ impl Transaction {
 
     pub fn decode(data: &[u8]) -> Self {
         bincode::deserialize::<Transaction>(data).unwrap()
+    }
+}
+
+fn generate_random_transaction_with_signature() -> Transaction {
+    let mut tx = Transaction::new(String::from("marvin!").into_bytes());
+    let mut private_key = crate::crypto::keys::generate_private_key();
+    tx.sign(&mut private_key).unwrap();
+    tx
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_transaction_hash() {
+        let mut tx = Transaction::new(String::from("Hello, World!").into_bytes());
+        let hash = tx.hash().unwrap();
+        assert!(!hash.is_zero());
+    }
+
+    #[test]
+    fn test_transaction_signing() {
+        let mut tx = Transaction::new(String::from("Hello, World!").into_bytes());
+        let mut private_key = crate::crypto::keys::generate_private_key();
+        tx.sign(&mut private_key).unwrap();
+        assert!(tx.signature.is_some());
+    }
+
+    #[test]
+    fn test_transaction_verification() {
+        let mut tx = Transaction::new(String::from("Hello, World!").into_bytes());
+        let mut private_key = crate::crypto::keys::generate_private_key();
+        tx.sign(&mut private_key).unwrap();
+        assert!(tx.verify());
+    }
+
+    #[test]
+    fn test_transaction_encode_decode() {
+        let tx = generate_random_transaction_with_signature();
+        let encoded = tx.encode();
+        let decoded = Transaction::decode(&encoded);
+
+        assert_eq!(tx.from, decoded.from);
+        assert_eq!(tx.to, decoded.to);
+        assert_eq!(tx.value, decoded.value);
+        assert_eq!(tx.data, decoded.data);
+        assert_eq!(tx.nonce, decoded.nonce);
+        assert_eq!(tx.hash, decoded.hash);
+        assert_eq!(tx.signature, decoded.signature);
     }
 }

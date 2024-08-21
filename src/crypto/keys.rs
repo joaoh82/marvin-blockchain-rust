@@ -74,10 +74,10 @@ pub fn generate_private_key() -> PrivateKey {
 
 impl PrivateKey {
     /// Sign a message with the private key
-    pub fn sign(&mut self, data: &[u8]) -> SignatureWrapper {
-        SignatureWrapper {
+    pub fn sign(&mut self, data: &[u8]) -> Result<SignatureWrapper, String> {
+        Ok(SignatureWrapper {
             signature: self.key.sign(data),
-        }
+        })
     }
 
     /// Sign a message with the private key
@@ -268,7 +268,7 @@ mod tests {
         let invalid_public_key: PublicKey = invalid_private_key.public_key();
 
         let data = b"hello world";
-        let signature = private_key.sign(data);
+        let signature = private_key.sign(data).unwrap();
 
         // Verify the signature size
         assert_eq!(SIGNATURE_SIZE, signature.signature.to_bytes().len());

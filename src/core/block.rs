@@ -12,7 +12,7 @@ use crypto::sha2::Sha256;
 pub struct Header {
     pub previous_block_hash: [u8; 32],
 
-    pub tx_hash: hash::Hash,
+    pub tx_hash: Option<hash::Hash>,
     pub version: u32,
     pub height: u32,
     pub timestamp: u32,
@@ -67,7 +67,7 @@ impl Block {
 
 
     /// Calculates the hash of all the transactions in the block
-    pub fn calculate_tx_hash(&self) -> hash::Hash {
+    pub fn calculate_tx_hash(&self) -> Option<hash::Hash> {
         let mut hasher = Sha256::new();
 
         for tx in &self.transactions {
@@ -77,7 +77,7 @@ impl Block {
         let mut hash = [0; 32];
         hasher.result(&mut hash);
 
-        hash::Hash { hash }
+        Some(hash::Hash { hash })
     }
 
 
@@ -87,7 +87,7 @@ impl Block {
         let signature = private_key.sign(&self.header.to_bytes());
 
         self.public_key = Some(public_key);
-        self.signature = Some(signature);
+        self.signature = Some(signature?);
 
         Ok(())
     }
@@ -145,7 +145,7 @@ fn generate_random_block() -> Block {
 
     let mut header = Header {
         previous_block_hash: [0; 32],
-        tx_hash: hash::Hash { hash: [0; 32] },
+        tx_hash: Some(hash::Hash { hash: [0; 32] }),
         version: 1,
         height: 1,
         timestamp: 1,
@@ -217,7 +217,7 @@ mod tests {
     fn test_block_new() {
         let header = Header {
             previous_block_hash: [0; 32],
-            tx_hash: hash::Hash { hash: [0; 32] },
+            tx_hash: Some(hash::Hash { hash: [0; 32] }),
             version: 1,
             height: 1,
             timestamp: 1,
@@ -229,7 +229,10 @@ mod tests {
         let block = Block::new(header, transactions);
 
         assert_eq!(block.header.previous_block_hash, [0; 32]);
-        assert_eq!(block.header.tx_hash.hash, [0; 32]);
+
+        let tx_hash = Some(block.header.tx_hash).unwrap();
+        assert_eq!(tx_hash, Some(hash::Hash { hash: [0; 32] }));
+
         assert_eq!(block.header.version, 1);
         assert_eq!(block.header.height, 1);
         assert_eq!(block.header.timestamp, 1);
@@ -242,7 +245,7 @@ mod tests {
     fn test_header_serialization() {
         let header = Header {
             previous_block_hash: [0; 32],
-            tx_hash: hash::Hash { hash: [0; 32] },
+            tx_hash: Some(hash::Hash { hash: [0; 32] }),
             version: 1,
             height: 1,
             timestamp: 1,
