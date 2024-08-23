@@ -64,6 +64,7 @@ cargo test
 - [x] Create key pair with mnemonic seed
 - [x] Add address command to CLI
 - [x] Basic transaction and block data structures and validation
+- [ ] Add better error handling and logging
 - [ ] Implement the basic blockchain data structure
 
 ### Roadmap (Subject to Change)
