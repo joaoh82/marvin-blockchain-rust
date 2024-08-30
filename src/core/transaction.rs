@@ -22,13 +22,16 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<proto::Transaction, String
 }
 
 /// Hash a transaction
-pub fn hash_transaction(t: &proto::Transaction) -> Vec<u8> {
+pub fn hash_transaction(t: &mut proto::Transaction) -> Vec<u8> {
     let data = serialize_transaction(t.clone()).unwrap();
     let mut hasher = Sha256::new();
     hasher.input(&data);
 
     let mut hash = [0; 32];
     hasher.result(&mut hash);
+
+    t.hash = hash.to_vec();
+
     hash.to_vec()
 }
 

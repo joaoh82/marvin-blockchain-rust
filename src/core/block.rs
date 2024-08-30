@@ -3,7 +3,7 @@ use core::hash;
 use crate::crypto::keys::{PrivateKey, PublicKey, SignatureWrapper};
 use crate::crypto::keys::{SIGNATURE_SIZE, PUBLIC_KEY_SIZE};
 use crate::crypto::keys::*;
-use crate::proto;
+use crate::proto::{self, Transaction};
 
 use prost;
 use prost::Message;
@@ -92,15 +92,16 @@ pub fn hash_block(b: &proto::Block) -> Vec<u8> {
 /// Add a transaction to a block
 pub fn add_transaction(b: &mut proto::Block, tx: proto::Transaction) {
     b.transactions.push(tx);
-    let hash = calculate_tx_hash(&b.transactions);
+    let hash = calculate_tx_hash(&mut b.transactions);
     
     b.header.as_mut().unwrap().tx_hash = hash;
 }
 
 /// Calculate the hash of a list of transactions
-pub fn calculate_tx_hash(txs : &Vec<proto::Transaction>) -> Vec<u8> {
+pub fn calculate_tx_hash(txs : &mut Vec<proto::Transaction>) -> Vec<u8> {
     let mut hasher = Sha256::new();
-    for tx in txs {
+    
+    for tx in txs.iter_mut() {
         let data = hash_transaction(tx);
         hasher.input(&data);
     }
