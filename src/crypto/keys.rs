@@ -4,12 +4,13 @@ use pbkdf2::pbkdf2_hmac;
 use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
+use sha2::Sha512;
 
-const PRIVATE_KEY_SIZE: usize = ed25519_dalek::SECRET_KEY_LENGTH;
-const PUBLIC_KEY_SIZE: usize = ed25519_dalek::PUBLIC_KEY_LENGTH;
-const SIGNATURE_SIZE: usize = ed25519_dalek::SIGNATURE_LENGTH;
-const ADDRESS_SIZE: usize = 20;
-const SEED_SIZE: usize = 32;
+pub const PRIVATE_KEY_SIZE: usize = ed25519_dalek::SECRET_KEY_LENGTH;
+pub const PUBLIC_KEY_SIZE: usize = ed25519_dalek::PUBLIC_KEY_LENGTH;
+pub const SIGNATURE_SIZE: usize = ed25519_dalek::SIGNATURE_LENGTH;
+pub const ADDRESS_SIZE: usize = 20;
+pub const SEED_SIZE: usize = 32;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct PrivateKey {
@@ -33,11 +34,11 @@ pub fn get_mnemonic_from_entropy(entropy: &[u8; 16]) -> String {
 /// get_seed_from_mnemonic generates a new seed from the given mnemonic
 pub fn get_seed_from_mnemonic(mnemonic: &str) -> [u8; SEED_SIZE] {
     let mut seed = [0u8; SEED_SIZE];
-    let salt = b"mnemonic+some password";
+    let salt = b"mnemonicSecret Passphrase";
     // number of iterations
-    let n = 1024_000;
+    let n = 1024;
 
-    pbkdf2_hmac::<Sha256>(mnemonic.as_bytes(), salt, n, &mut seed);
+    pbkdf2_hmac::<Sha512>(mnemonic.as_bytes(), salt, n, &mut seed);
 
     seed
 }
@@ -91,6 +92,11 @@ impl PrivateKey {
             key: self.key.verifying_key(),
         }
     }
+
+    /// Convert the private key to a string in hex format
+    pub fn to_string(&self) -> String {
+        hex::encode(self.key.to_bytes())
+    }
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub struct PublicKey {
@@ -98,6 +104,17 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
+
+    pub fn from_bytes(bytes: &[u8]) -> PublicKey {
+        if bytes.len() != PUBLIC_KEY_SIZE {
+            panic!("Invalid public key size, expected 32 bytes.");
+        }
+
+        PublicKey {
+            key: VerifyingKey::from_bytes(bytes.try_into().unwrap()).unwrap(),
+        }
+    }
+
     pub fn to_bytes(&self) -> [u8; PUBLIC_KEY_SIZE] {
         self.key.to_bytes()
     }
@@ -107,6 +124,10 @@ impl PublicKey {
             value: self.key.to_bytes()[..ADDRESS_SIZE].try_into().unwrap(),
         }
     }
+    
+    pub fn to_string(&self) -> String {
+        hex::encode(self.key.to_bytes())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
@@ -115,6 +136,17 @@ pub struct SignatureWrapper {
 }
 
 impl SignatureWrapper {
+    pub fn from_bytes(bytes: &[u8]) -> SignatureWrapper {
+        if bytes.len() != SIGNATURE_SIZE {
+            panic!("Invalid signature size, expected 64 bytes.");
+        }
+
+        SignatureWrapper {
+            signature: Signature::from_bytes(bytes.try_into().unwrap()),
+        }
+    }
+
+
     /// Convert the signature to bytes
     pub fn to_bytes(&self) -> [u8; SIGNATURE_SIZE] {
         self.signature.to_bytes()
@@ -123,6 +155,11 @@ impl SignatureWrapper {
     /// Verify a message with the public key
     pub fn verify(&self, data: &[u8], public_key: &PublicKey) -> bool {
         public_key.key.verify(data, &self.signature).is_ok()
+    }
+
+    /// Convert the signature to a string in hex format
+    pub fn to_string(&self) -> String {
+        hex::encode(self.signature.to_bytes())
     }
 }
 
@@ -162,8 +199,8 @@ mod tests {
 
     #[test]
     fn test_new_private_key_from_mnemonic() {
-        let mnemonic = "reason oil range swear outdoor letter pair city axis expire tower dumb";
-        let address_string = "fddf13d119646c53622a70adba80081a3ef13522";
+        let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
+        let address_string = "e15af3cd7d9c09ebaf20d1f97ea396c218b66037";
         let private_key = get_private_key_from_mnemonic(&mnemonic);
 
         assert_eq!(
@@ -228,7 +265,6 @@ mod tests {
     fn test_get_mnemonic_from_entropy() {
         let entropy = new_entropy();
         let mnemonic = get_mnemonic_from_entropy(&entropy);
-        println!("Mnemonic: {}", mnemonic);
         assert_eq!(12, mnemonic.split_whitespace().count());
     }
 
@@ -284,11 +320,10 @@ mod tests {
     }
 
     #[test]
-    fn test_public_jey_to_address() {
+    fn test_public_key_to_address() {
         let private_key = generate_private_key();
         let public_key = private_key.public_key();
         let address = public_key.address();
-        // println!("{}", address.string());
         assert_eq!(ADDRESS_SIZE, address.value.len());
     }
 }

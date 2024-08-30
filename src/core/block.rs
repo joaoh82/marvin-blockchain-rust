@@ -8,14 +8,16 @@ use serde::{Deserialize, Serialize};
 
 use crypto::sha2::Sha256;
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Header {
     pub previous_block_hash: [u8; 32],
 
-    pub tx_hash: Option<hash::Hash>,
+    pub tx_hash: [u8; 32],
     pub version: u32,
     pub height: u32,
-    pub timestamp: u32,
+    pub timestamp: u128,
 
     pub nonce: u32,
     pub difficulty: u8,
@@ -67,7 +69,7 @@ impl Block {
 
 
     /// Calculates the hash of all the transactions in the block
-    pub fn calculate_tx_hash(&self) -> Option<hash::Hash> {
+    pub fn calculate_tx_hash(&self) -> [u8; 32] {
         let mut hasher = Sha256::new();
 
         for tx in &self.transactions {
@@ -77,7 +79,7 @@ impl Block {
         let mut hash = [0; 32];
         hasher.result(&mut hash);
 
-        Some(hash::Hash { hash })
+        hash
     }
 
 
@@ -85,9 +87,16 @@ impl Block {
     pub fn sign(&mut self, mut private_key: PrivateKey) -> Result<(), String> {
         let public_key = private_key.public_key();
         let signature = private_key.sign(&self.header.to_bytes());
+        println!("Block Header: {:?}", self.header.to_bytes());
 
         self.public_key = Some(public_key);
         self.signature = Some(signature?);
+
+        println!("Block signed by {}", public_key.address().to_string());
+        println!("Block Signature: {}", self.signature.unwrap().to_string());
+        let sig = self.signature.unwrap();
+
+        println!("Block Signature from bytes: {}", hex::encode(sig.signature.to_bytes()));
 
         Ok(())
     }
@@ -141,17 +150,25 @@ impl Block {
 
 /// Generate a random block for testing purposes
 fn generate_random_block() -> Block {
-    let mut private_key = crate::crypto::keys::generate_private_key();
+    let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
+    let private_key = crate::crypto::keys::get_private_key_from_mnemonic(&mnemonic);
 
-    let mut header = Header {
+    let now = SystemTime::now();
+    let since_epoch = now.duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+    let nanos = since_epoch.as_nanos();
+
+    let header = Header {
         previous_block_hash: [0; 32],
-        tx_hash: Some(hash::Hash { hash: [0; 32] }),
+        tx_hash: [0; 32],
         version: 1,
         height: 1,
-        timestamp: 1,
-        nonce: 1,
-        difficulty: 1,
+        timestamp: 1724695016265493000,//nanos,
+        nonce: 0,
+        difficulty: 0,
     };
+    println!("previous_block_hash: {:?}", hex::encode(header.previous_block_hash));
+    println!("Header: {:?}", header);
 
     let transactions = vec![];
     let mut block = Block::new(header, transactions);
@@ -189,7 +206,18 @@ mod tests {
     #[test]
     fn test_block_verify() {
         let mut block = generate_random_block();
-        let private_key = crypto::keys::generate_private_key();
+
+        let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
+        let address_string = "e15af3cd7d9c09ebaf20d1f97ea396c218b66037";
+        let private_key = crypto::keys::get_private_key_from_mnemonic(&mnemonic);
+
+        assert_eq!(
+            private_key.public_key().address().to_string(),
+            address_string,
+            "Address should be equal to the expected value"
+        );
+
+        // let private_key = crypto::keys::generate_private_key();
         block.sign(private_key).unwrap();
 
         let is_valid = block.verify().unwrap();
@@ -199,7 +227,17 @@ mod tests {
     #[test]
     fn test_block_sign() {
         let mut block = generate_random_block();
-        let private_key = crypto::keys::generate_private_key();
+
+        let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
+        let address_string = "e15af3cd7d9c09ebaf20d1f97ea396c218b66037";
+        let private_key = crypto::keys::get_private_key_from_mnemonic(&mnemonic);
+
+        assert_eq!(
+            private_key.public_key().address().to_string(),
+            address_string,
+            "Address should be equal to the expected value"
+        );
+
         block.sign(private_key).unwrap();
 
         assert!(block.public_key.is_some());
@@ -217,7 +255,7 @@ mod tests {
     fn test_block_new() {
         let header = Header {
             previous_block_hash: [0; 32],
-            tx_hash: Some(hash::Hash { hash: [0; 32] }),
+            tx_hash: [0; 32],
             version: 1,
             height: 1,
             timestamp: 1,
@@ -231,7 +269,7 @@ mod tests {
         assert_eq!(block.header.previous_block_hash, [0; 32]);
 
         let tx_hash = Some(block.header.tx_hash).unwrap();
-        assert_eq!(tx_hash, Some(hash::Hash { hash: [0; 32] }));
+        assert_eq!(tx_hash, [0; 32]);
 
         assert_eq!(block.header.version, 1);
         assert_eq!(block.header.height, 1);
@@ -245,7 +283,7 @@ mod tests {
     fn test_header_serialization() {
         let header = Header {
             previous_block_hash: [0; 32],
-            tx_hash: Some(hash::Hash { hash: [0; 32] }),
+            tx_hash: [0; 32],
             version: 1,
             height: 1,
             timestamp: 1,
