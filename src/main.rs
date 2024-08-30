@@ -2,7 +2,6 @@ mod proto;
 mod cli;
 mod core;
 mod crypto;
-mod types;
 
 use std::io::Read;
 
