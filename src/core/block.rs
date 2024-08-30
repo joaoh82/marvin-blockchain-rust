@@ -1,309 +1,248 @@
-use crate::core::transaction::Transaction;
+use core::hash;
+
 use crate::crypto::keys::{PrivateKey, PublicKey, SignatureWrapper};
-use crate::types::hash;
+use crate::crypto::keys::{SIGNATURE_SIZE, PUBLIC_KEY_SIZE};
+use crate::crypto::keys::*;
+use crate::proto;
 
-use bincode;
+use prost;
+use prost::Message;
+
 use crypto::digest::Digest;
-use serde::{Deserialize, Serialize};
-
 use crypto::sha2::Sha256;
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use super::transaction::hash_transaction;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Header {
-    pub previous_block_hash: [u8; 32],
 
-    pub tx_hash: [u8; 32],
-    pub version: u32,
-    pub height: u32,
-    pub timestamp: u128,
-
-    pub nonce: u32,
-    pub difficulty: u8,
+/// Serialize a header
+pub fn serialize_header(h : proto::Header) -> Result<Vec<u8>, String> {
+    let mut buf = Vec::new();
+    h.encode(&mut buf).map_err(|e| e.to_string())?;
+    Ok(buf)
 }
 
-impl Header {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        bincode::serialize(self).expect("Serialization failed")
-    }
+/// Deserialize a header
+pub fn deserialize_header(data: &[u8]) -> Result<proto::Header, String> {
+    proto::Header::decode(data).map_err(|e| e.to_string())
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Block {
-    header: Header,
-    transactions: Vec<Transaction>,
-    #[serde(default, skip_serializing_if = "Option::is_none", skip_deserializing)]
-    public_key: Option<PublicKey>,
-    #[serde(default, skip_serializing_if = "Option::is_none", skip_deserializing)]
-    signature: Option<SignatureWrapper>,
-
-    // Cached version of the header hash
-    #[serde(default, skip_serializing_if = "Option::is_none", skip_deserializing)]
-    hash: Option<hash::Hash>,
+/// Serialize a block
+pub fn serialize_block(b : proto::Block) -> Result<Vec<u8>, String> {
+    let mut buf = Vec::new();
+    b.encode(&mut buf).map_err(|e| e.to_string())?;
+    Ok(buf)
 }
 
-impl Block {
-    pub fn new(header: Header, transactions: Vec<Transaction>) -> Self {
-        Block {
-            header,
-            transactions,
-            public_key: None,
-            signature: None,
-            hash: None,
-        }
-    }
-
-    /// Serialize the block to bytes
-    pub fn to_bytes(&self) -> Vec<u8> {
-        bincode::serialize(self).expect("Serialization failed")
-    }
-
-
-    /// Add a transaction to the block
-    pub fn add_transaction(&mut self, transaction: Transaction) {
-        self.transactions.push(transaction);
-        let mut txHash = self.calculate_tx_hash();
-        self.header.tx_hash = txHash;
-    }
-
-
-    /// Calculates the hash of all the transactions in the block
-    pub fn calculate_tx_hash(&self) -> [u8; 32] {
-        let mut hasher = Sha256::new();
-
-        for tx in &self.transactions {
-            hasher.input(&tx.to_bytes());
-        }
-
-        let mut hash = [0; 32];
-        hasher.result(&mut hash);
-
-        hash
-    }
-
-
-    /// Sign the block with the given private key
-    pub fn sign(&mut self, mut private_key: PrivateKey) -> Result<(), String> {
-        let public_key = private_key.public_key();
-        let signature = private_key.sign(&self.header.to_bytes());
-        println!("Block Header: {:?}", self.header.to_bytes());
-
-        self.public_key = Some(public_key);
-        self.signature = Some(signature?);
-
-        println!("Block signed by {}", public_key.address().to_string());
-        println!("Block Signature: {}", self.signature.unwrap().to_string());
-        let sig = self.signature.unwrap();
-
-        println!("Block Signature from bytes: {}", hex::encode(sig.signature.to_bytes()));
-
-        Ok(())
-    }
-
-    /// Verify the signature of the block
-    pub fn verify(&self) -> Result<bool, String> {
-        if self.public_key.is_none() || self.signature.is_none() {
-            return Err("Block is not signed".to_string());
-        }
-
-        let public_key = self.public_key.as_ref().unwrap();
-        let signature = self.signature.as_ref().unwrap();
-
-        let is_valid = signature.verify(&self.header.to_bytes(), public_key);
-        if !is_valid {
-            return Err("Invalid signature".to_string());
-        }
-
-        let mut tx_hash = self.calculate_tx_hash();
-        if tx_hash != self.header.tx_hash {
-            return Err("Invalid transaction hash".to_string());
-        }
-
-        Ok(is_valid)
-    }
-
-    /// Calculate the hash of the block
-    pub fn hash(&self) -> Option<hash::Hash> {
-        if let Some(hash) = &self.hash {
-            return Some(hash.clone());
-        }
-
-        let bytes = self.to_bytes();
-        let mut hasher = Sha256::new();
-        hasher.input(&bytes);
-        let mut hash = [0; 32];
-        hasher.result(&mut hash);
-
-        Some(hash::Hash { hash })
-    }
-
-    pub fn encode(&self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
-
-    pub fn decode(data: &[u8]) -> Self {
-        bincode::deserialize::<Block>(data).unwrap()
-    }
-
+/// Deserialize a block
+pub fn deserialize_block(data: &[u8]) -> Result<proto::Block, String> {
+    proto::Block::decode(data).map_err(|e| e.to_string())
 }
 
-/// Generate a random block for testing purposes
-fn generate_random_block() -> Block {
-    let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
-    let private_key = crate::crypto::keys::get_private_key_from_mnemonic(&mnemonic);
+/// Sign a block
+pub fn sign_block(private_key: &mut PrivateKey, b: &mut proto::Block) -> Result<(SignatureWrapper), String> {
+    let hash = hash_block(b);
+    let signature = private_key.sign(&hash).map_err(|e| e.to_string())?;
 
-    let now = SystemTime::now();
-    let since_epoch = now.duration_since(UNIX_EPOCH)
-        .expect("Time went backwards");
-    let nanos = since_epoch.as_nanos();
+    b.signature = signature.to_bytes().to_vec();
+    b.public_key = private_key.public_key().to_bytes().to_vec();
+    b.hash = hash;
 
-    let header = Header {
-        previous_block_hash: [0; 32],
-        tx_hash: [0; 32],
-        version: 1,
-        height: 1,
-        timestamp: 1724695016265493000,//nanos,
-        nonce: 0,
-        difficulty: 0,
-    };
-    println!("previous_block_hash: {:?}", hex::encode(header.previous_block_hash));
-    println!("Header: {:?}", header);
+    Ok(signature)
+}
 
-    let transactions = vec![];
-    let mut block = Block::new(header, transactions);
-    let tx_hash = block.calculate_tx_hash();
-    block.header.tx_hash = tx_hash;
+/// Verify a block
+pub fn verify_block(b: &proto::Block) -> Result<bool, String> {
+    if b.signature.is_empty() || b.public_key.is_empty() {
+        return Err("Block is not signed".to_string());
+    }
 
-    block.sign(private_key).unwrap();
+    if b.signature.len() != SIGNATURE_SIZE {
+        return Err("Invalid signature size".to_string());
+    }
 
-    block
+    if b.public_key.len() != PUBLIC_KEY_SIZE {
+        return Err("Invalid public key size".to_string());
+    }
+
+    let signature = SignatureWrapper::from_bytes(&b.signature);
+    let public_key = PublicKey::from_bytes(&b.public_key);
+    let hash = hash_block(b);
+    let is_valid = signature.verify(&hash, &public_key);
+
+    Ok(is_valid)
+}
+
+/// Calculate the hash of a header
+pub fn hash_header(h: &proto::Header) -> Vec<u8> {
+    let data = serialize_header(h.clone()).unwrap();
+    let mut hasher = Sha256::new();
+    hasher.input(&data);
+
+    let mut hash = [0; 32]; 
+    hasher.result(&mut hash);
+
+    hash.to_vec()
+}
+
+/// Calculate the hash of a block
+pub fn hash_block(b: &proto::Block) -> Vec<u8> {
+    hash_header(b.header.as_ref().unwrap())
+}
+
+/// Add a transaction to a block
+pub fn add_transaction(b: &mut proto::Block, tx: proto::Transaction) {
+    b.transactions.push(tx);
+    let hash = calculate_tx_hash(&b.transactions);
+    
+    b.header.as_mut().unwrap().tx_hash = hash;
+}
+
+/// Calculate the hash of a list of transactions
+pub fn calculate_tx_hash(txs : &Vec<proto::Transaction>) -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    for tx in txs {
+        let data = hash_transaction(tx);
+        hasher.input(&data);
+    }
+
+    let mut hash = [0; 32];
+    hasher.result(&mut hash);
+
+    hash.to_vec()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto;
+    use crate::{crypto::keys, proto};
+    // use prost;
+    // use prost::{Enumeration, Message};
 
     #[test]
-    fn test_block_encode_decode() {
-        let block = generate_random_block();
-        let encoded = block.encode();
-        let decoded = Block::decode(&encoded);
+    fn test_serialize_header() {
+        let header = proto::Header {
+            prev_block_hash: [0; 32].to_vec(),
+            tx_hash: [0; 32].to_vec(),
+            version: 1,
+            height: 1,
+            timestamp: 1627483623,
+            nonce: 12345,
+            difficulty: 10,
+        };
 
-        assert_eq!(block.header.previous_block_hash, decoded.header.previous_block_hash);
-        assert_eq!(block.header.tx_hash, decoded.header.tx_hash);
-        assert_eq!(block.header.version, decoded.header.version);
-        assert_eq!(block.header.height, decoded.header.height);
-        assert_eq!(block.header.timestamp, decoded.header.timestamp);
-        assert_eq!(block.header.nonce, decoded.header.nonce);
-        assert_eq!(block.header.difficulty, decoded.header.difficulty);
-        assert_eq!(block.transactions.len(), decoded.transactions.len());
-        // assert_eq!(block.public_key, decoded.public_key);
-        // assert_eq!(block.signature, decoded.signature);
+        let data = serialize_header(header.clone()).unwrap();
+        let h2 = deserialize_header(&data).unwrap();
+
+        assert_eq!(header, h2);
     }
 
     #[test]
-    fn test_block_verify() {
-        let mut block = generate_random_block();
+    fn test_serialize_header_fail() {
+        let header = proto::Header {
+            prev_block_hash: [0; 32].to_vec(),
+            tx_hash: [0; 32].to_vec(),
+            version: 1,
+            height: 1,
+            timestamp: 1627483623,
+            nonce: 12345,
+            difficulty: 10,
+        };
 
+        let data = serialize_header(header.clone()).unwrap();
+        let h2 = deserialize_header(&data[1..]);
+
+        assert!(h2.is_err());
+    }
+
+    #[test]
+    fn test_serialize_block() {
+        let header = proto::Header {
+            prev_block_hash: [0; 32].to_vec(),
+            tx_hash: [0; 32].to_vec(),
+            version: 1,
+            height: 1,
+            timestamp: 1627483623,
+            nonce: 12345,
+            difficulty: 10,
+        };
+
+        let tx = proto::Transaction {
+            from: [0; 32].to_vec(),
+            to: [0; 32].to_vec(),
+            value: 1000,
+            data: b"Transaction data".to_vec(),
+            signature: [0; 64].to_vec(),
+            nonce: 123,
+            hash: [0; 32].to_vec(),
+        };
+
+        let block = proto::Block {
+            header: Some(header),
+            transactions: vec![tx],
+            public_key: [0; 32].to_vec(),
+            signature: vec![],
+            hash: vec![],
+        };
+
+        let data = serialize_block(block.clone()).unwrap();
+        let b2 = deserialize_block(&data).unwrap();
+
+        assert_eq!(block, b2);
+    }
+
+    #[test]
+    fn test_sign_block() {
         let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
-        let address_string = "e15af3cd7d9c09ebaf20d1f97ea396c218b66037";
-        let private_key = crypto::keys::get_private_key_from_mnemonic(&mnemonic);
+	    let address_string = "e15af3cd7d9c09ebaf20d1f97ea396c218b66037";
 
-        assert_eq!(
-            private_key.public_key().address().to_string(),
-            address_string,
-            "Address should be equal to the expected value"
-        );
+        let mut private_key = keys::get_private_key_from_mnemonic(mnemonic);
+        let public_key = private_key.public_key();
+        let address = public_key.address();
+        assert_eq!(address.to_string(), address_string);
 
-        // let private_key = crypto::keys::generate_private_key();
-        block.sign(private_key).unwrap();
+        // Create an instance of Header
+        let header = proto::Header {
+            prev_block_hash: [0; 32].to_vec(),
+            tx_hash: [0; 32].to_vec(),
+            version: 1,
+            height: 1,
+            timestamp: 1627483623,
+            nonce: 12345,
+            difficulty: 10,
+        };
 
-        let is_valid = block.verify().unwrap();
+        // Create an instance of Block
+        let mut block = proto::Block {
+            header: Some(header),
+            transactions: vec![],
+            public_key: public_key.to_bytes().to_vec(),
+            signature: vec![],
+            hash: vec![],
+        };
+
+        let public_key_to = keys::generate_private_key().public_key();
+
+        let tx = proto::Transaction {
+            from: public_key.to_bytes().to_vec(),
+            to: public_key_to.to_bytes().to_vec(),
+            value: 1000,
+            data: b"Transaction data".to_vec(),
+            signature: [0; 64].to_vec(),
+            nonce: 123,
+            hash: [0; 32].to_vec(),
+        };
+
+        add_transaction(&mut block, tx);
+
+        assert_eq!(block.transactions.len(), 1);
+
+        let signature = sign_block(&mut private_key, &mut block).unwrap();
+
+        assert_eq!(signature.to_bytes().len(), SIGNATURE_SIZE);
+
+        let is_valid = verify_block(&block).unwrap();
         assert!(is_valid);
+
     }
-
-    #[test]
-    fn test_block_sign() {
-        let mut block = generate_random_block();
-
-        let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
-        let address_string = "e15af3cd7d9c09ebaf20d1f97ea396c218b66037";
-        let private_key = crypto::keys::get_private_key_from_mnemonic(&mnemonic);
-
-        assert_eq!(
-            private_key.public_key().address().to_string(),
-            address_string,
-            "Address should be equal to the expected value"
-        );
-
-        block.sign(private_key).unwrap();
-
-        assert!(block.public_key.is_some());
-        assert!(block.signature.is_some());
-    }
-
-    #[test]
-    fn test_block_hash() {
-        let block = generate_random_block();
-        let hash = block.hash().unwrap();
-        assert!(!hash.is_zero());
-    }
-
-    #[test]
-    fn test_block_new() {
-        let header = Header {
-            previous_block_hash: [0; 32],
-            tx_hash: [0; 32],
-            version: 1,
-            height: 1,
-            timestamp: 1,
-            nonce: 1,
-            difficulty: 1,
-        };
-
-        let transactions = vec![];
-        let block = Block::new(header, transactions);
-
-        assert_eq!(block.header.previous_block_hash, [0; 32]);
-
-        let tx_hash = Some(block.header.tx_hash).unwrap();
-        assert_eq!(tx_hash, [0; 32]);
-
-        assert_eq!(block.header.version, 1);
-        assert_eq!(block.header.height, 1);
-        assert_eq!(block.header.timestamp, 1);
-        assert_eq!(block.header.nonce, 1);
-        assert_eq!(block.header.difficulty, 1);
-        assert_eq!(block.transactions.len(), 0);
-    }
-
-    #[test]
-    fn test_header_serialization() {
-        let header = Header {
-            previous_block_hash: [0; 32],
-            tx_hash: [0; 32],
-            version: 1,
-            height: 1,
-            timestamp: 1,
-            nonce: 1,
-            difficulty: 1,
-        };
-
-        let bytes = header.to_bytes();
-        let deserialized_header: Header =
-            bincode::deserialize(&bytes).expect("Deserialization failed");
-
-        assert_eq!(
-            header.previous_block_hash,
-            deserialized_header.previous_block_hash
-        );
-        assert_eq!(header.tx_hash, deserialized_header.tx_hash);
-        assert_eq!(header.version, deserialized_header.version);
-        assert_eq!(header.height, deserialized_header.height);
-        assert_eq!(header.timestamp, deserialized_header.timestamp);
-        assert_eq!(header.nonce, deserialized_header.nonce);
-        assert_eq!(header.difficulty, deserialized_header.difficulty);
-    }
+    
 }
