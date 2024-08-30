@@ -21,6 +21,11 @@ jobs:
           version: 0.14.2
           use-tool-cache: true
       - uses: actions/checkout@v4
+      - name: Install protobuf
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          cargo install protobuf-codegen
       - name: Build
         run: cargo build --verbose
       - name: Run tests
