@@ -1,9 +1,9 @@
-use core::hash;
 
 use crate::crypto::keys::{PrivateKey, PublicKey, SignatureWrapper};
 use crate::crypto::keys::{SIGNATURE_SIZE, PUBLIC_KEY_SIZE};
-use crate::crypto::keys::*;
 use crate::proto::{self, Transaction};
+
+use crate::error::{Result, MarvinError};
 
 use prost;
 use prost::Message;
@@ -15,33 +15,33 @@ use super::transaction::hash_transaction;
 
 
 /// Serialize a header
-pub fn serialize_header(h : proto::Header) -> Result<Vec<u8>, String> {
+pub fn serialize_header(h : proto::Header) -> Result<Vec<u8>> {
     let mut buf = Vec::new();
-    h.encode(&mut buf).map_err(|e| e.to_string())?;
+    h.encode(&mut buf).map_err(|e| MarvinError::General(e.to_string()))?;
     Ok(buf)
 }
 
 /// Deserialize a header
-pub fn deserialize_header(data: &[u8]) -> Result<proto::Header, String> {
-    proto::Header::decode(data).map_err(|e| e.to_string())
+pub fn deserialize_header(data: &[u8]) -> Result<proto::Header> {
+    proto::Header::decode(data).map_err(|e| MarvinError::General(e.to_string()))
 }
 
 /// Serialize a block
-pub fn serialize_block(b : proto::Block) -> Result<Vec<u8>, String> {
+pub fn serialize_block(b : proto::Block) -> Result<Vec<u8>> {
     let mut buf = Vec::new();
-    b.encode(&mut buf).map_err(|e| e.to_string())?;
+    b.encode(&mut buf).map_err(|e| MarvinError::General(e.to_string()))?;
     Ok(buf)
 }
 
 /// Deserialize a block
-pub fn deserialize_block(data: &[u8]) -> Result<proto::Block, String> {
-    proto::Block::decode(data).map_err(|e| e.to_string())
+pub fn deserialize_block(data: &[u8]) -> Result<proto::Block> {
+    proto::Block::decode(data).map_err(|e| MarvinError::General(e.to_string()))
 }
 
 /// Sign a block
-pub fn sign_block(private_key: &mut PrivateKey, b: &mut proto::Block) -> Result<(SignatureWrapper), String> {
+pub fn sign_block(private_key: &mut PrivateKey, b: &mut proto::Block) -> Result<(SignatureWrapper)> {
     let hash = hash_block(b);
-    let signature = private_key.sign(&hash).map_err(|e| e.to_string())?;
+    let signature = private_key.sign(&hash).map_err(|e| MarvinError::General(e.to_string()))?;
 
     b.signature = signature.to_bytes().to_vec();
     b.public_key = private_key.public_key().to_bytes().to_vec();
@@ -51,21 +51,21 @@ pub fn sign_block(private_key: &mut PrivateKey, b: &mut proto::Block) -> Result<
 }
 
 /// Verify a block
-pub fn verify_block(b: &proto::Block) -> Result<bool, String> {
+pub fn verify_block(b: &proto::Block) -> Result<bool> {
     if b.signature.is_empty() || b.public_key.is_empty() {
-        return Err("Block is not signed".to_string());
+        return Err(MarvinError::General(String::from("Block is not signed".to_string())));
     }
 
     if b.signature.len() != SIGNATURE_SIZE {
-        return Err("Invalid signature size".to_string());
+        return Err(MarvinError::General(String::from("Invalid signature size".to_string())));
     }
 
     if b.public_key.len() != PUBLIC_KEY_SIZE {
-        return Err("Invalid public key size".to_string());
+        return Err(MarvinError::General(String::from("Invalid public key size".to_string())));
     }
 
-    let signature = SignatureWrapper::from_bytes(&b.signature);
-    let public_key = PublicKey::from_bytes(&b.public_key);
+    let signature = SignatureWrapper::from_bytes(&b.signature).unwrap();
+    let public_key = PublicKey::from_bytes(&b.public_key).unwrap();
     let hash = hash_block(b);
     let is_valid = signature.verify(&hash, &public_key);
 
@@ -196,7 +196,7 @@ mod tests {
         let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
 	    let address_string = "e15af3cd7d9c09ebaf20d1f97ea396c218b66037";
 
-        let mut private_key = keys::get_private_key_from_mnemonic(mnemonic);
+        let mut private_key = keys::get_private_key_from_mnemonic(mnemonic).unwrap();
         let public_key = private_key.public_key();
         let address = public_key.address();
         assert_eq!(address.to_string(), address_string);

@@ -2,8 +2,8 @@ mod proto;
 mod cli;
 mod core;
 mod crypto;
+mod error;
 
-use std::io::Read;
 
 use cli::start_cli;
 use crypto::keys::{self, get_private_key_from_mnemonic};
@@ -21,8 +21,8 @@ fn main() {
             Some(("create", _)) => {
                 println!("Generating new address...");
                 let entropy = crypto::keys::new_entropy();
-                let mnemonic = crypto::keys::get_mnemonic_from_entropy(&entropy);
-                let private_key = crypto::keys::get_private_key_from_mnemonic(&mnemonic);
+                let mnemonic = crypto::keys::get_mnemonic_from_entropy(&entropy).unwrap();
+                let private_key = crypto::keys::get_private_key_from_mnemonic(&mnemonic).unwrap();
                 let public_key = private_key.public_key();
                 let address = public_key.address();
 
@@ -31,7 +31,7 @@ fn main() {
             }
             Some(("restore", restore_matches)) => {
                 let mnemonic = restore_matches.get_one::<String>("mnemonic").unwrap();
-                let private_key = get_private_key_from_mnemonic(mnemonic);
+                let private_key = get_private_key_from_mnemonic(mnemonic).unwrap();
                 let public_key = private_key.public_key();
                 let address = public_key.address();
                 println!("address: {}", address.to_string());
@@ -53,13 +53,13 @@ fn block_serialization() -> Result<(), Box<dyn std::error::Error>> {
     println!("Block Serialization");
 
     let mnemonic_to = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
-    let private_key_to = crypto::keys::get_private_key_from_mnemonic(&mnemonic_to);
+    let private_key_to = crypto::keys::get_private_key_from_mnemonic(&mnemonic_to).unwrap();
     let public_key_to = private_key_to.public_key();
     let address_to = public_key_to.address();
     println!("address to: {}", address_to.to_string());
 
     let mnemonic_from = "hello wild paddle pride wheat menu task funny sign profit blouse hockey";
-    let mut private_key_from = crypto::keys::get_private_key_from_mnemonic(&mnemonic_from);
+    let mut private_key_from = crypto::keys::get_private_key_from_mnemonic(&mnemonic_from).unwrap();
     let public_key_from = private_key_from.public_key();
     let address_from = public_key_from.address();
     println!("address from: {}", address_from.to_string());

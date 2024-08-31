@@ -3,8 +3,9 @@ use ed25519_dalek::{ed25519::signature::SignerMut, Signature, SigningKey, Verifi
 use pbkdf2::pbkdf2_hmac;
 use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
 use sha2::Sha512;
+
+use crate::error::{MarvinError, Result};
 
 pub const PRIVATE_KEY_SIZE: usize = ed25519_dalek::SECRET_KEY_LENGTH;
 pub const PUBLIC_KEY_SIZE: usize = ed25519_dalek::PUBLIC_KEY_LENGTH;
@@ -26,9 +27,9 @@ pub fn new_entropy() -> [u8; 16] {
 }
 
 /// get_mnemonic_from_entropy generates a new mnemonic from the given entropy
-pub fn get_mnemonic_from_entropy(entropy: &[u8; 16]) -> String {
+pub fn get_mnemonic_from_entropy(entropy: &[u8; 16]) -> Result<String> {
     let mnemonic = Mnemonic::from_entropy(entropy).unwrap();
-    mnemonic.to_string()
+    Ok(mnemonic.to_string())
 }
 
 /// get_seed_from_mnemonic generates a new seed from the given mnemonic
@@ -44,26 +45,28 @@ pub fn get_seed_from_mnemonic(mnemonic: &str) -> [u8; SEED_SIZE] {
 }
 
 /// get_private_key_from_mnemonic generates a new private key from the given mnemonic
-pub fn get_private_key_from_mnemonic(mnemonic: &str) -> PrivateKey {
+pub fn get_private_key_from_mnemonic(mnemonic: &str) -> Result<PrivateKey> {
     let seed = get_seed_from_mnemonic(mnemonic);
     new_private_key_from_seed(&seed)
 }
 
 /// new_private_key_from_string generates a new private key from the given private key string
-pub fn new_private_key_from_string(private_key: &str) -> PrivateKey {
+pub fn new_private_key_from_string(private_key: &str) -> Result<PrivateKey> {
     let decoded_private_key = hex::decode(private_key).unwrap();
 
     new_private_key_from_seed(&decoded_private_key[..SEED_SIZE].try_into().unwrap())
 }
 
 /// new_private_key_from_seed generates a new private key from the given seed
-pub fn new_private_key_from_seed(seed: &[u8; 32]) -> PrivateKey {
+pub fn new_private_key_from_seed(seed: &[u8; 32]) -> Result<PrivateKey> {
     if seed.len() != SEED_SIZE {
-        panic!("Invalid seed size, expected 32 bytes.");
+        return Err(MarvinError::Internal(String::from("Invalid seed size, expected 32 bytes.")));
     }
 
     let key = SigningKey::from_bytes(seed);
-    PrivateKey { key }
+    Ok(PrivateKey { 
+        key 
+    })
 }
 
 /// generate_private_key generates a new private key with a random seed (Good for testing purposes)
@@ -75,7 +78,7 @@ pub fn generate_private_key() -> PrivateKey {
 
 impl PrivateKey {
     /// Sign a message with the private key
-    pub fn sign(&mut self, data: &[u8]) -> Result<SignatureWrapper, String> {
+    pub fn sign(&mut self, data: &[u8]) -> Result<SignatureWrapper> {
         Ok(SignatureWrapper {
             signature: self.key.sign(data),
         })
@@ -104,15 +107,14 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
-
-    pub fn from_bytes(bytes: &[u8]) -> PublicKey {
+    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey> {
         if bytes.len() != PUBLIC_KEY_SIZE {
-            panic!("Invalid public key size, expected 32 bytes.");
+            return Err(MarvinError::Internal(String::from("Invalid public key size, expected 32 bytes.")));
         }
 
-        PublicKey {
+        Ok(PublicKey {
             key: VerifyingKey::from_bytes(bytes.try_into().unwrap()).unwrap(),
-        }
+        })
     }
 
     pub fn to_bytes(&self) -> [u8; PUBLIC_KEY_SIZE] {
@@ -136,14 +138,14 @@ pub struct SignatureWrapper {
 }
 
 impl SignatureWrapper {
-    pub fn from_bytes(bytes: &[u8]) -> SignatureWrapper {
+    pub fn from_bytes(bytes: &[u8]) -> Result<SignatureWrapper> {
         if bytes.len() != SIGNATURE_SIZE {
-            panic!("Invalid signature size, expected 64 bytes.");
+            return Err(MarvinError::Internal(String::from("Invalid signature size, expected 64 bytes.")));
         }
 
-        SignatureWrapper {
+        Ok(SignatureWrapper {
             signature: Signature::from_bytes(bytes.try_into().unwrap()),
-        }
+        })
     }
 
 
@@ -188,7 +190,7 @@ mod tests {
     fn test_new_private_key_from_mnemonic_deterministic() {
         let entropy = new_entropy();
         let mnemonic = get_mnemonic_from_entropy(&entropy);
-        let private_key = get_private_key_from_mnemonic(&mnemonic);
+        let private_key = get_private_key_from_mnemonic(&mnemonic.unwrap()).unwrap();
 
         assert_eq!(
             private_key.to_bytes().len(),
@@ -201,7 +203,7 @@ mod tests {
     fn test_new_private_key_from_mnemonic() {
         let mnemonic = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
         let address_string = "e15af3cd7d9c09ebaf20d1f97ea396c218b66037";
-        let private_key = get_private_key_from_mnemonic(&mnemonic);
+        let private_key = get_private_key_from_mnemonic(&mnemonic).unwrap();
 
         assert_eq!(
             private_key.to_bytes().len(),
@@ -265,13 +267,13 @@ mod tests {
     fn test_get_mnemonic_from_entropy() {
         let entropy = new_entropy();
         let mnemonic = get_mnemonic_from_entropy(&entropy);
-        assert_eq!(12, mnemonic.split_whitespace().count());
+        assert_eq!(12, mnemonic.unwrap().split_whitespace().count());
     }
 
     #[test]
     fn test_new_private_key_from_seed() {
         let seed = [0u8; 32];
-        let private_key = new_private_key_from_seed(&seed);
+        let private_key = new_private_key_from_seed(&seed).unwrap();
         assert_eq!(PRIVATE_KEY_SIZE, private_key.to_bytes().len());
     }
 
@@ -279,7 +281,7 @@ mod tests {
     fn test_new_private_key_from_string() {
         let seed = "753bfa924576a230736e83589933ccb7aad8fd3934d7e9637df4912b58ac95d6";
         let address_string = "339f9690596b35d909a8c47fe26c5e8697af034c";
-        let private_key = new_private_key_from_string(&seed);
+        let private_key = new_private_key_from_string(&seed).unwrap();
 
         assert_eq!(PRIVATE_KEY_SIZE, private_key.to_bytes().len());
 

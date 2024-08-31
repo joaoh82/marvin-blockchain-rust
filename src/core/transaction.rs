@@ -1,7 +1,8 @@
 use crate::crypto::keys::{PrivateKey, PublicKey, SignatureWrapper};
 use crate::crypto::keys::{SIGNATURE_SIZE, PUBLIC_KEY_SIZE};
-use crate::crypto::keys::*;
 use crate::proto;
+
+use crate::error::{Result, MarvinError};
 
 use prost;
 use prost::Message;
@@ -10,15 +11,15 @@ use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 
 /// Serialize a transaction
-pub fn serialize_transaction(t : proto::Transaction) -> Result<Vec<u8>, String> {
+pub fn serialize_transaction(t : proto::Transaction) -> Result<Vec<u8>> {
     let mut buf = Vec::new();
-    t.encode(&mut buf).map_err(|e| e.to_string())?;
+    t.encode(&mut buf).map_err(|e| MarvinError::General(e.to_string()))?;
     Ok(buf)
 }
 
 /// Deserialize a transaction
-pub fn deserialize_transaction(data: &[u8]) -> Result<proto::Transaction, String> {
-    proto::Transaction::decode(data).map_err(|e| e.to_string())
+pub fn deserialize_transaction(data: &[u8]) -> Result<proto::Transaction> {
+    proto::Transaction::decode(data).map_err(|e| MarvinError::General(e.to_string()))
 }
 
 /// Hash a transaction
@@ -36,24 +37,25 @@ pub fn hash_transaction(t: &mut proto::Transaction) -> Vec<u8> {
 }
 
 /// Sign a transaction
-pub fn sign_transaction(private_key: &mut PrivateKey, t: &mut proto::Transaction) -> Result<(SignatureWrapper), String> {
+pub fn sign_transaction(private_key: &mut PrivateKey, t: &mut proto::Transaction) -> Result<SignatureWrapper> {
     let hash = hash_transaction(t);
-    let signature = private_key.sign(&hash).map_err(|e| e.to_string())?;
+    let signature = private_key.sign(&hash).map_err(|e| MarvinError::General(e.to_string()))?;
 
     t.signature = signature.to_bytes().to_vec();
     t.hash = hash;
+    t.from = private_key.public_key().to_bytes().to_vec();
 
     Ok(signature)
 }
 
 /// Verify a transaction
-pub fn verify_transaction(t: &mut proto::Transaction) -> Result<bool, String> {
+pub fn verify_transaction(t: &mut proto::Transaction) -> Result<bool> {
     if t.signature.is_empty() {
-        return Err("Transaction is not signed".to_string());
+        return Err(MarvinError::General(String::from("Transaction is not signed".to_string())));
     }
 
     if t.signature.len() != SIGNATURE_SIZE {
-        return Err("Invalid signature size".to_string());
+        return Err(MarvinError::Internal(String::from("Invalid signature size".to_string())));
     }
 
     let temp_sig = t.signature.clone();
@@ -67,12 +69,12 @@ pub fn verify_transaction(t: &mut proto::Transaction) -> Result<bool, String> {
     t.signature = temp_sig;
     t.hash = temp_hash;
 
-    let signature = SignatureWrapper::from_bytes(&t.signature);
-    let public_key = PublicKey::from_bytes(&t.from);
+    let signature = SignatureWrapper::from_bytes(&t.signature).unwrap();
+    let public_key = PublicKey::from_bytes(&t.from).unwrap();
     
     let is_valid = signature.verify(&hash, &public_key);
     if !is_valid {
-        return Err("Invalid signature".to_string());
+        return Err(MarvinError::General(String::from("Invalid signature".to_string())));
     }
 
     Ok(is_valid)
@@ -86,12 +88,12 @@ mod tests {
     #[test]
     fn test_serialize_transaction() {
         let mnemonic_to = "all wild paddle pride wheat menu task funny sign profit blouse hockey";
-        let private_key_to = keys::get_private_key_from_mnemonic(&mnemonic_to);
+        let private_key_to = keys::get_private_key_from_mnemonic(&mnemonic_to).unwrap();
         let public_key_to = private_key_to.public_key();
         // let address_to = public_key_to.address();
 
         let mnemonic_from = "hello wild paddle pride wheat menu task funny sign profit blouse hockey";
-        let private_key_from = keys::get_private_key_from_mnemonic(&mnemonic_from);
+        let private_key_from = keys::get_private_key_from_mnemonic(&mnemonic_from).unwrap();
         let public_key_from = private_key_from.public_key();
         // let address_from = public_key_from.address();
 
