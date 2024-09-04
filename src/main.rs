@@ -65,7 +65,7 @@ fn block_serialization() -> Result<(), Box<dyn std::error::Error>> {
     println!("address from: {}", address_from.to_string());
 
     // Create an instance of Header
-    let mut header = proto::Header {
+    let header = proto::Header {
         prev_block_hash: [0; 32].to_vec(),
         tx_hash: [0; 32].to_vec(),
         version: 1,
@@ -100,9 +100,5 @@ fn block_serialization() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("RUST: Block WITH TRANSACTIONS hex: {:?}", hex::encode(core::block::serialize_block(block.clone()).unwrap()));
     
-    let newBlock = core::block::deserialize_block(&core::block::serialize_block(block.clone()).unwrap()).unwrap();
-
-
-
     Ok(())
 }
