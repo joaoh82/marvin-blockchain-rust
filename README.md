@@ -66,7 +66,7 @@ cargo test
 - [x] Basic transaction and block data structures and validation
 - [x] Add better error handling
 - [x] Add protobuf encoding/decoding
-- [ ] Implement the basic blockchain data structure
+- [x] Implement the basic blockchain data structure
 
 ### Roadmap (Subject to Change)
 - [ ] Proof of Work (PoW) consensus mechanism

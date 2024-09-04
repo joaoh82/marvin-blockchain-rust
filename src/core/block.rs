@@ -52,6 +52,9 @@ pub fn sign_block(private_key: &mut PrivateKey, b: &mut proto::Block) -> Result<
 
 /// Verify a block
 pub fn verify_block(b: &proto::Block) -> Result<bool> {
+
+    // TODO: Validate Transactions
+
     if b.signature.is_empty() || b.public_key.is_empty() {
         return Err(MarvinError::General(String::from("Block is not signed".to_string())));
     }
