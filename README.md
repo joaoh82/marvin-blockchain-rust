@@ -68,6 +68,7 @@ cargo test
 - [x] Add protobuf encoding/decoding
 - [x] Implement the basic blockchain data structure
 - [x] Added basic application logging with slog crate
+- [ ] Peer-to-Peer (P2P) networking implementation (transport layer)
 
 ### Roadmap (Subject to Change)
 - [ ] Proof of Work (PoW) consensus mechanism
