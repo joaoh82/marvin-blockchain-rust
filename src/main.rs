@@ -1,3 +1,13 @@
+#![allow(unused_macros)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
+#[macro_use]
+extern crate slog;
+
+#[macro_use]
+pub mod utils;
+
 mod proto;
 mod cli;
 mod core;
@@ -8,10 +18,17 @@ mod error;
 use cli::start_cli;
 use crypto::keys::{self, get_private_key_from_mnemonic};
 
-use prost;
-use prost::{Enumeration, Message};
+use slog::*;
+use slog::Drain;
+use std::sync::Mutex;
 
 fn main() {
+    let logger = utils::log::make_json_logger();
+
+    info!(logger, "info json log"; o!("key" => "value", "key2" => "value2"));
+    // warn!(logger, "warn json log"; "key" => "value");
+    // debug!(logger, "debug json log"; "key" => "value");
+
     block_serialization().unwrap();
 
     let matches = start_cli().get_matches();
@@ -49,7 +66,7 @@ fn main() {
 }
 
 
-fn block_serialization() -> Result<(), Box<dyn std::error::Error>> {
+fn block_serialization() -> Result<()> {
     println!("Block Serialization");
 
     let mnemonic_to = "all wild paddle pride wheat menu task funny sign profit blouse hockey";

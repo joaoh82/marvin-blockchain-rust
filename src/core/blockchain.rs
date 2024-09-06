@@ -1,14 +1,16 @@
-
 const CHAIN_MNEMONIC: &str = "velvet echo quill jungle nimbus crescent whisk anchor harbor tangle mosaic horizon";
 
 use crate::core::header_list::HeaderList;
 use crate::core::storage::Storage;
 use crate::error::{Result, MarvinError};
 use crate::proto;
+use crate::utils::log::make_json_logger;
+
 
 pub struct Blockchain {
     pub headers: HeaderList,
     pub store: Box<dyn Storage>,
+    pub logger: slog::Logger,
 }
 
 impl Blockchain {
@@ -16,6 +18,7 @@ impl Blockchain {
         let mut bc = Blockchain {
             headers: HeaderList::new(),
             store,
+            logger: make_json_logger(),
         };
 
         // Create the genesis block
@@ -45,6 +48,10 @@ impl Blockchain {
         }
 
         // TODO: Log block added to the blockchain
+        info!(self.logger, "Block added to the blockchain"; 
+            "height" => self.height(), 
+            "hash" => hex::encode(crate::core::block::hash_block(&block))
+        );
 
         // Store the block in the storage
         self.store.put(&block)?;

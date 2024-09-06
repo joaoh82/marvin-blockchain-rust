@@ -14,3 +14,6 @@
 6. [Prost](https://github.com/tokio-rs/prost/tree/master/prost)
   - prost is a Protocol Buffers implementation for the Rust Language. prost generates simple, idiomatic Rust code from proto2 and proto3 files.
   - https://crates.io/crates/prost 
+7. [slog - Structured, extensible, composable logging for Rust](https://crates.io/crates/slog)
+  - https://zeroes.dev/p/structured-logging-in-rust-using-slog/
+  - https://zsiciarz.github.io/24daysofrust/book/vol2/day4.html

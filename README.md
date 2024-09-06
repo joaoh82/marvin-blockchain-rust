@@ -67,6 +67,7 @@ cargo test
 - [x] Add better error handling
 - [x] Add protobuf encoding/decoding
 - [x] Implement the basic blockchain data structure
+- [x] Added basic application logging with slog crate
 
 ### Roadmap (Subject to Change)
 - [ ] Proof of Work (PoW) consensus mechanism

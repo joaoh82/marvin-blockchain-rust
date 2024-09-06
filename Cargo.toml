@@ -6,6 +6,7 @@ build = "build.rs"
 
 [dependencies]
 bip39 = "2.0.0"
+chrono = "0.4.38"
 clap = { version = "4.5.13", features = ["derive"] }
 ed25519-dalek = { version = "2.1.1", features = [
     "rand_core",
@@ -25,6 +26,10 @@ rand = "0.8.5"
 rust-crypto = "0.2.36"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.8"
+slog = "2.7.0"
+slog-async = "2.8.0"
+slog-json = "2.6.1"
+slog-term = "2.9.1"
 thiserror = "1.0.63"
 
 [build-dependencies]
