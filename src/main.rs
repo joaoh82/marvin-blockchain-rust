@@ -13,7 +13,7 @@ mod cli;
 mod core;
 mod crypto;
 mod error;
-
+mod types;
 
 use cli::start_cli;
 use crypto::keys::{self, get_private_key_from_mnemonic};
@@ -110,12 +110,12 @@ fn block_serialization() -> Result<()> {
         nonce: 123,
         hash: [0; 32].to_vec(),
     };
-    let _ = core::transaction::sign_transaction(&mut private_key_from, &mut tx).unwrap();
-    core::block::add_transaction(&mut block, tx);
+    let _ = types::transaction::sign_transaction(&mut private_key_from, &mut tx).unwrap();
+    types::block::add_transaction(&mut block, tx);
 
-    core::block::sign_block(&mut private_key_from, &mut block).unwrap();
+    types::block::sign_block(&mut private_key_from, &mut block).unwrap();
 
-    println!("RUST: Block WITH TRANSACTIONS hex: {:?}", hex::encode(core::block::serialize_block(block.clone()).unwrap()));
+    println!("RUST: Block WITH TRANSACTIONS hex: {:?}", hex::encode(types::block::serialize_block(block.clone()).unwrap()));
     
     Ok(())
 }

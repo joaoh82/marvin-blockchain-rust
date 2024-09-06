@@ -5,7 +5,7 @@ use crate::core::storage::Storage;
 use crate::error::{Result, MarvinError};
 use crate::proto;
 use crate::utils::log::make_json_logger;
-
+use crate::types;
 
 pub struct Blockchain {
     pub headers: HeaderList,
@@ -50,7 +50,7 @@ impl Blockchain {
         // TODO: Log block added to the blockchain
         info!(self.logger, "Block added to the blockchain"; 
             "height" => self.height(), 
-            "hash" => hex::encode(crate::core::block::hash_block(&block))
+            "hash" => hex::encode(crate::types::block::hash_block(&block))
         );
 
         // Store the block in the storage
@@ -74,7 +74,7 @@ impl Blockchain {
         block.header = Some(header);
 
         // Signs the block
-        crate::core::block::sign_block(&mut private_key, &mut block)?;
+        crate::types::block::sign_block(&mut private_key, &mut block)?;
 
         Ok(block)
     }
@@ -116,11 +116,11 @@ impl Blockchain {
         }
 
         // Check if the block is valid
-        crate::core::block::verify_block(block).unwrap();
+        crate::types::block::verify_block(block).unwrap();
 
         // Retrieve the last header in the blockchain, calculate the hash of the last block and compare it with the previous hash in the new block
         let last_header = self.headers.last().unwrap();
-        let last_hash = crate::core::block::hash_header(last_header);
+        let last_hash = crate::types::block::hash_header(last_header);
         // Check if the previous hash in the new block is the hash of the last block
         if last_hash != block.header.as_ref().unwrap().prev_block_hash {
             return Err(MarvinError::General(
@@ -154,7 +154,7 @@ mod tests {
 
         let num_blocks = 10;
         for i in 0..num_blocks {
-            let prev_block_hash = crate::core::block::hash_header(blockchain.headers.last().unwrap());
+            let prev_block_hash = crate::types::block::hash_header(blockchain.headers.last().unwrap());
             let block = generate_random_block((i+1) as i64, prev_block_hash);
             let result = blockchain.add_block(block);
 
@@ -185,7 +185,7 @@ mod tests {
         block.header = Some(header);
 
         // Signs the block
-        crate::core::block::sign_block(&mut private_key, &mut block).unwrap();
+        crate::types::block::sign_block(&mut private_key, &mut block).unwrap();
 
         block
     }
